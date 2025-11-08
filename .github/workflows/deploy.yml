@@ -1,0 +1,71 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Build backend
+        run: npm run build
+        working-directory: backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build -- --configuration production
+        working-directory: frontend
+
+      - name: Prepare release artifacts
+        run: |
+          rm -rf release
+          mkdir -p release/backend release/frontend
+          cp backend/package.json release/backend/
+          cp backend/package-lock.json release/backend/
+          cp -R backend/dist release/backend/dist
+          cp -R backend/migrations release/backend/migrations
+          cp backend/migration.config.cjs release/backend/
+          cp -R backend/scripts release/backend/scripts
+          cp -R frontend/dist release/frontend/dist
+
+      - name: Clean workspace
+        run: |
+          rm -rf backend/node_modules frontend/node_modules
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Sync release to Lightsail
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" release/ ${{ secrets.LIGHTSAIL_DEPLOY_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/home/${{ secrets.LIGHTSAIL_DEPLOY_USER }}/skierglistan_release
+
+      - name: Upload deploy script
+        run: |
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no scripts/deploy/remote_deploy.sh ${{ secrets.LIGHTSAIL_DEPLOY_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/home/${{ secrets.LIGHTSAIL_DEPLOY_USER }}/remote_deploy.sh
+
+      - name: Run remote deployment
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.LIGHTSAIL_DEPLOY_USER }}@${{ secrets.LIGHTSAIL_HOST }} 'chmod +x ~/remote_deploy.sh && ~/remote_deploy.sh ~/skierglistan_release'
+

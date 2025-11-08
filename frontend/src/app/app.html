@@ -1,0 +1,28 @@
+<div class="app-shell flex flex-column">
+  <header class="app-header py-2">
+    <div class="app-header__content flex align-items-center justify-content-between flex-wrap p-3 gap-3">
+      <a class="app-brand flex flex-column gap-1" href="/">
+        <span class="app-tag">Skierglistan</span>
+      </a>
+      <nav class="app-nav flex align-items-center gap-3">
+        <a routerLink="/" routerLinkActive="app-nav-active" [routerLinkActiveOptions]="{ exact: true }">
+          Facilities
+        </a>
+        <a routerLink="/facilities/new" routerLinkActive="app-nav-active">
+          Create Facility
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main flex-grow-1">
+    <div class="app-main__content surface-card p-3 gap-3">
+      <router-outlet />
+    </div>
+  </main>
+
+  <footer class="app-footer px-4 py-3 text-sm flex justify-content-between flex-wrap gap-2">
+    <span>© {{ currentYear }} {{ title() }}</span>
+    <span class="text-500">Keep the ergs spinning.</span>
+  </footer>
+</div>

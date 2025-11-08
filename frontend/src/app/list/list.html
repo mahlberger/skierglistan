@@ -1,0 +1,151 @@
+<app-page-header
+    title="Facilities"
+    description="Browse every registered facility, including chain affiliation, erg brand, and any additional notes."
+    [headingLevel]="2">
+    <a
+        pageHeaderActions
+        pButton
+        [size]="'small'"
+        [routerLink]="['/facilities/new']"
+        label="Create Facility">
+    </a>
+</app-page-header>
+
+<div class="flex flex-column gap-2">
+    <div class="list-search">
+        <i class="pi pi-search list-search__icon"></i>
+        <input pInputText type="text" class="list-search__input" placeholder="Search by keyword, separate multiple terms with commas" [(ngModel)]="searchTermValue" (ngModelChange)="updateSearch($event)" />
+    </div>
+    <small class="text-sm text-500">Use commas to combine filters, for example <code>stockholm,concept</code>.</small>
+</div>
+
+<hr class="my-4" />
+
+@if (!hasResults()) {
+    <div class="flex flex-column align-items-center justify-content-center border-round-lg border-dashed surface-border text-500 py-5 gap-2">
+        <i class="pi pi-folder-open text-2xl text-primary"></i>
+        <span>No facilities match these keywords.</span>
+    </div>
+} @else {
+    <p-table
+        [value]="filtered()"
+        [loading]="loading"
+        [size]="'small'"
+        class="facility-table"
+        [stripedRows]="true"
+        dataKey="id"
+        #facilityTable>
+        <ng-template pTemplate="header">
+            <tr>
+                <th class="facility-table__col facility-table__col--toggle text-center"></th>
+                <th class="facility-table__col facility-table__col--id white-space-nowrap text-sm font-semibold text-700">ID</th>
+                <th class="facility-table__col facility-table__col--name white-space-nowrap text-sm font-semibold text-700">Name</th>
+                <th class="facility-table__col facility-table__col--city white-space-nowrap text-sm font-semibold text-700">City</th>
+                <th class="facility-table__col facility-table__col--postal white-space-nowrap text-sm font-semibold text-700">Postal Code</th>
+                <th class="facility-table__col facility-table__col--street white-space-nowrap text-sm font-semibold text-700">Street Address</th>
+                <th class="facility-table__col facility-table__col--ergs white-space-nowrap text-sm font-semibold text-700">Ergs</th>
+                <th class="facility-table__col facility-table__col--chain white-space-nowrap text-sm font-semibold text-700">Chain</th>
+                <th class="facility-table__col facility-table__col--brand white-space-nowrap text-sm font-semibold text-700">Erg Brand</th>
+                <th class="facility-table__col facility-table__col--link white-space-nowrap text-sm font-semibold text-700 text-center">Link</th>
+                <th class="facility-table__col facility-table__col--extra white-space-nowrap text-sm font-semibold text-700">Extra Information</th>
+                <th class="facility-table__col facility-table__col--actions text-sm font-semibold text-700 text-right">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-facility>
+            <tr>
+                <td class="facility-table__col facility-table__col--toggle text-center">
+                    <button
+                        type="button"
+                        pButton
+                        [size]="'small'"
+                        [text]="true"
+                        class="facility-table__toggle"
+                        [ngClass]="{ 'is-expanded': facilityTable.isRowExpanded(facility) }"
+                        [pRowToggler]="facility">
+                        <i class="pi pi-chevron-right"></i>
+                    </button>
+                </td>
+                <td class="facility-table__col facility-table__col--id white-space-nowrap">{{ facility.id }}</td>
+                <td class="facility-table__col facility-table__col--name white-space-nowrap">{{ facility.name }}</td>
+                <td class="facility-table__col facility-table__col--city white-space-nowrap">{{ facility.city }}</td>
+                <td class="facility-table__col facility-table__col--postal white-space-nowrap">{{ facility.postalCode }}</td>
+                <td class="facility-table__col facility-table__col--street white-space-normal">{{ facility.streetAddress }}</td>
+                <td class="facility-table__col facility-table__col--ergs white-space-nowrap">
+                    {{ facility.numberOfErgs }}
+                    {{ facility.numberOfErgs === 1 ? 'pc' : 'pcs' }}
+                </td>
+                <td class="facility-table__col facility-table__col--chain white-space-nowrap">{{ facility.chainName ?? '-' }}</td>
+                <td class="facility-table__col facility-table__col--brand white-space-nowrap">{{ facility.ergBrandName ?? '-' }}</td>
+                <td class="facility-table__col facility-table__col--link white-space-nowrap text-center">
+                    @if (facility.externalUrl) {
+                        <a [href]="facility.externalUrl" target="_blank" rel="noopener" class="text-primary hover:text-primary-700 transition-colors transition-duration-150 inline-flex align-items-center justify-content-center">
+                            <i class="pi pi-external-link"></i>
+                        </a>
+                    } @else {
+                        -
+                    }
+                </td>
+                <td class="facility-table__col facility-table__col--extra white-space-normal">{{ facility.extraInformation ?? '-' }}</td>
+                <td class="facility-table__col facility-table__col--actions text-right">
+                    <a
+                        [routerLink]="['/facilities', facility.id, 'edit']"
+                        pButton
+                        [text]="true"
+                        [size]="'small'">
+                        Edit
+                    </a>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="expandedrow" let-facility>
+            <tr class="facility-table__expansion">
+                <td colspan="12">
+                    <div class="facility-table__details">
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Postal Code</span>
+                            <span class="facility-table__detail-value">{{ facility.postalCode || '-' }}</span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Street Address</span>
+                            <span class="facility-table__detail-value">{{ facility.streetAddress || '-' }}</span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Erg Brand</span>
+                            <span class="facility-table__detail-value">{{ facility.ergBrandName || '-' }}</span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Chain</span>
+                            <span class="facility-table__detail-value">{{ facility.chainName || '-' }}</span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Extra Information</span>
+                            <span class="facility-table__detail-value">{{ facility.extraInformation || '-' }}</span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">External Link</span>
+                            <span class="facility-table__detail-value">
+                                <a *ngIf="facility.externalUrl; else noLinkDetail" [href]="facility.externalUrl" target="_blank" rel="noopener" class="text-primary hover:text-primary-700 transition-colors transition-duration-150 inline-flex align-items-center gap-2">
+                                    <i class="pi pi-external-link"></i>
+                                    Visit
+                                </a>
+                                <ng-template #noLinkDetail>-</ng-template>
+                            </span>
+                        </div>
+                        <div class="facility-table__detail">
+                            <span class="facility-table__detail-label">Actions</span>
+                            <span class="facility-table__detail-value">
+                                <a
+                                    [routerLink]="['/facilities', facility.id, 'edit']"
+                                    pButton
+                                    [text]="true"
+                                    [size]="'small'">
+                                    Edit Facility
+                                </a>
+                            </span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+}
